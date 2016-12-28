@@ -1,0 +1,126 @@
+---
+title: "The Effect of Vitamin C on Tooth Growth in Guinea Pigs"
+author: "Mari Coonley"
+date: "December 24, 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## SUMMARY
+
+The response is the length of odontoblasts (cells responsible for tooth growth) in 60 guinea pigs. Each animal received one of three dose levels of vitamin C (0.5, 1, and 2 mg/day) by one of two delivery methods, orange juice (coded as OJ) or ascorbic acid (a form of vitamin C and coded as VC).
+
+The data frame is comprised of 60 observations on 3 variables.
+
+The three variables are:
+
+[ ,1]	len -	Tooth length
+
+[ ,2]	supp - Supplement type (VC or OJ)
+
+[ ,3]	dose -	Dose in milligrams/day (3 levels of dosage - 0.5, 1.0 and 2.0)
+
+Allocation of observations such that ten observations per dosage per supplement type.
+
+
+## First, review data.
+```{r}
+library(datasets)
+str(ToothGrowth)
+summary(ToothGrowth)
+```
+
+## Visual representation
+
+A quick look at the data shows:
+
+```{r, echo=FALSE,warning=FALSE, message=FALSE}
+library(ggplot2)
+qplot(dose,len, data = ToothGrowth, facets = .~supp)+ geom_smooth()+ylab("Tooth Length")+ xlab("Dosage in Milligrams/Day")
+```
+A cursory visual review of the data suggests a more dramatic growth rate as the dosage of ascorbic acid increases, proposing the hypothesis ascorbic acid encourages more tooth growth at higher dosages than orange juice. 
+
+Now, look at the data using statistical inference.  Begin by separating the data into two categories by supplements, orange juice (OJ) and ascorbic acid (VC).  Compare means and standard deviations.
+```{r}
+suppsplit<-split(ToothGrowth, ToothGrowth$supp)
+MnSupSplit<-sapply(suppsplit, function(x) mean( x[,"len"], na.rm = TRUE))
+print( "Means"); MnSupSplit
+````
+The higher mean suggests the vitamin C in orange juice is more effective in promoting tooth growth.  However, standard deviation should also be calculated to see how narrow or wide the range between the lowest and highest tooth length to show tightly the relevant data is clustered.
+```{r}
+SdSupSplit<-sapply(suppsplit, function(x) sd( x[,"len"], na.rm = TRUE))
+print("Standard Deviations"); SdSupSplit
+```
+Because the standard deviation of the orange juice supplement is smaller than the ascorbic acid supplement, this suggests that the coinciding data is more closely clustered together.  Further supporting the concept that orange juice might be a better source of vitamin C than ascorbic acid.  This contradicts the original hypothesis derived from the original visual review of the data. 
+
+This analysis is a broad overview of the data. The individual supplement distribution should be broken down further to compare dosage levels. 
+```{r}
+DoseSupSplit<-split(ToothGrowth, list(ToothGrowth$supp, ToothGrowth$dose))
+MnD_SupSplt<-sapply(DoseSupSplit, function(x) mean( x[,"len"], na.rm = TRUE))
+print( "Means"); MnD_SupSplt
+SdD_SupSplt<-sapply(DoseSupSplit, function(x) sd( x[,"len"], na.rm = TRUE))
+print("Standard Deviations"); SdD_SupSplt
+```
+This new information shows that the mean per dosage is higher for orange juice for  0.5 and 1.0 MG but at the 2.0 MG level, mean for ascorbic acid is slightly higher.  The standard deviations for the orange juice supplement are larger for orange juice than ascorbic acid at both the 0.5 and 1.0 MG levels, suggesting a wider range in tooth growth, which could possibly explain the higher means at those levels.  This is also the case for the standard deviation of ascorbic acid at the 2.0 MG level, again suggesting a wider range in the data and a possible contributor to the higher mean.
+
+While this infomration is quite useful, a series of T tests need to be run to determine if there truly is any evidence of significant difference between the means.  Recall, the t-value represents the units of standard error and measures the size of the difference relative to the variance in the sample population. The null hypothesis for a T-test states that there is no significant difference.  Therefore, it is important to further subset the samples relative to dosage size and then compare those subsets to determine if there is a difference and reject this null hypothesis. 
+```{r}
+oj<-ToothGrowth[ToothGrowth$supp %in% c("OJ"),]
+vc<-ToothGrowth[ToothGrowth$supp %in% c("VC"),]
+ojdose5<-subset(oj, oj$dose == 0.5)
+ojdose1<-subset(oj, oj$dose == 1)
+ojdose2<-subset(oj, oj$dose == 2)
+vcdose5<-subset(vc, vc$dose == 0.5)
+vcdose1<-subset(vc, vc$dose == 1)
+vcdose2<-subset(vc, vc$dose == 2)
+```
+To interpret these results accurately, recall the following:
+
+The closer the t-value is to zero, the less likely there is any significant difference, thereby providing evidence to not reject the null hypothesis.  The larger the t-value, the more likely a
+significant difference, offering evidence to reject the null hypothesis. 
+
+The p-value (or power test) is the probability of obtaining results as or more extreme than the results observed when the null hypothesis is true.  The larger the p-value the more likely the null hypothesis is true, the smaller the p-value, the less likely the null hypothesis is true.  If the p-value is less than alpha, it is considered significant and the null hypothesis should be rejected.  
+
+The alpha is the probability of rejecting the null hypothesis.  It is equal to 1 minus the confidence interval.  In this case, alpha is equal to .05 or 5% because the confidence interval is 95%.
+
+The confidence interval is the range of likely values for population parameters, such as the mean.
+
+```{r}
+print("0.5 MG Dosage")
+t.test(ojdose5$len, vcdose5$len, paired = FALSE)
+```
+At the 0.5 MG dosage level, note the calculated means are the same as those calculated earlier.  
+The t-value for the 0.5 dosage is 3.1697, paired with a p-value of 0.003659 signifies the null hypothesis should be rejected at this level.  Further note, the mean of x is outside the confidence interval, this further supports the analysis to reject the null hypothesis. 
+
+```{r}
+
+print("1.0 MG Dosage")
+t.test(ojdose1$len, vcdose1$len, paired = FALSE)
+```
+
+At the 1.0 MG dosage level, the, t-value is 4.0328 and the p-value is 0.0010308, again signifying the null hypothesis should be rejected at this level.  At this level, note that BOTH sample means fall outside the confidence interval, again providing further support the rejection of the null hypothesis.
+
+```{r}
+print("2.0 MG dosage")
+t.test(ojdose2$len, vcdose2$len, paired = FALSE)
+```
+
+Lastly, at the 2.0 MG dosage level, the t-value is -0.46136 and the p-value is 0.9639.  This information suggests that the null hypothesis should NOT be rejected at this level, even though the means both are outside the confidence interval.  Recall to calculate the confidence interval of two groups take  the relevant quantile times the stand error of difference (the pooled variance estimate times the sum of 1 divided by the number of observations in each group raised to the one half power) then both add and subtract this calculation from the difference of the two means. 
+
+For the current data, as follows:
+
+```{r}
+##Pooled variance estimate
+sp<-sqrt((9*2.655058^2 + 9-4.797731^2)/10+10-2)
+## Confidence interval calculation
+26.04-26.15 +c(-1,1)*(qt(.975, 18)*sp*(1/10+1/10)^.5)
+```
+Because the means are so similar, the interval is expected to be small, and encompass zero, which further suggests not rejecting the null hypothesis.
+
+##  CONCLUSION
+## What do all these results suggest?
+
+Because of the mixed results, rejecting the null hypothesis at the lower dosage levels but not rejecting it at the highest dosage level, I would recommend it is necessary to increase the sample size and run more tests to potentially eliminate these types of discrepancies and mixed results.  If similar results are obtained with a larger sample  size, then recommendations should be made in relation to dosage size.  However, to maximize tooth growth, based on the data currently available, the recommendation should be to consume ascorbic acid at the 2 MG dosage, baring any long term negative side effects. 
